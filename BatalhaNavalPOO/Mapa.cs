@@ -17,7 +17,7 @@
         {
             for (int j = 0; j < TamanhoMapa; j++)
             {
-                if (i == 0) Tabuleiro[i, j] = j.ToString(); //preenchendo a primeira linha com indices
+                if (i == 0) Tabuleiro[i, j ] = j.ToString(); // ((char)('A' + j)).ToString(); preenchendo a primeira linha com indices
                 else if (j == 0) Tabuleiro[i, j] = i.ToString(); //preenchendo a primeira coluna com indices
                 else Tabuleiro[i, j] = "~"; // PREENCHENDO O MAPA COM ~ PARA SER A AGUA
             }
@@ -34,6 +34,7 @@
             }
             Console.WriteLine(""); //pulando linha
         }
+        Console.WriteLine();
     }
 
 
