@@ -5,12 +5,16 @@ public class JogadorBot : Jogador
 {
     private const int MAX_TENTATIVAS_POSICIONAR = 1000;
 
-    private readonly Queue<(int, int)> alvos = new Queue<(int, int)>();
-    private readonly HashSet<(int, int)> tentativas = new HashSet<(int, int)>();
+    private readonly Queue<Posicao> alvos = new Queue<Posicao>();
+    private readonly bool[,] jaAtacou; // true = o bot já atirou nessa posição
+    private int totalAtaques = 0;
     private bool cacando = true; // true = tiro aleatório, false = atacando vizinhos de um acerto
 
     public JogadorBot(Mapa mapa, List<Navio> navios)
-        : base("Bot", mapa, navios) { }
+        : base("Bot", mapa, navios)
+    {
+        jaAtacou = new bool[mapa.TamanhoMapa, mapa.TamanhoMapa];
+    }
 
     public override void PosicionarNavios()
     {
@@ -47,7 +51,7 @@ public class JogadorBot : Jogador
     {
         int tamanho = mapaInimigo.TamanhoMapa;
 
-        if (tentativas.Count >= (tamanho - 1) * (tamanho - 1))
+        if (totalAtaques >= (tamanho - 1) * (tamanho - 1))
         {
             throw new InvalidOperationException("O bot não tem mais posições para atacar.");
         }
@@ -58,21 +62,24 @@ public class JogadorBot : Jogador
         {
             try
             {
-                (int linha, int coluna) = ProximoAlvo(tamanho);
+                Posicao alvo = ProximoAlvo(tamanho);
 
-                if (!tentativas.Add((linha, coluna)))
+                if (jaAtacou[alvo.Linha, alvo.Coluna])
                 {
                     continue;
                 }
 
-                Console.WriteLine($"O bot atirou na linha {linha}, coluna {coluna}.");
+                jaAtacou[alvo.Linha, alvo.Coluna] = true;
+                totalAtaques++;
 
-                resultado = Disparar(mapaInimigo, linha, coluna);
+                Console.WriteLine($"O bot atirou na linha {alvo.Linha}, coluna {alvo.Coluna}.");
+
+                resultado = Disparar(mapaInimigo, alvo.Linha, alvo.Coluna);
                 Console.WriteLine(Mensagem(resultado));
 
                 if (resultado != RESULTADO_REPETIDO)
                 {
-                    AtualizarEstado(resultado, linha, coluna, tamanho);
+                    AtualizarEstado(resultado, alvo.Linha, alvo.Coluna, tamanho);
                 }
             }
             catch (CoordenadaInvalidaException)
@@ -86,7 +93,7 @@ public class JogadorBot : Jogador
         return resultado;
     }
 
-    private (int, int) ProximoAlvo(int tamanho)
+    private Posicao ProximoAlvo(int tamanho)
     {
         if (!cacando && alvos.Count > 0)
         {
@@ -94,7 +101,7 @@ public class JogadorBot : Jogador
         }
 
         cacando = true;
-        return (Random.Shared.Next(1, tamanho), Random.Shared.Next(1, tamanho));
+        return new Posicao(Random.Shared.Next(1, tamanho), Random.Shared.Next(1, tamanho));
     }
 
     private void AtualizarEstado(string resultado, int linha, int coluna, int tamanho)
@@ -117,23 +124,21 @@ public class JogadorBot : Jogador
 
     private void EnfileirarVizinhos(int linha, int coluna, int tamanho)
     {
-        List<(int, int)> vizinhos = new List<(int, int)>
-        {
-            (linha - 1, coluna),
-            (linha + 1, coluna),
-            (linha, coluna - 1),
-            (linha, coluna + 1)
-        };
+        List<Posicao> vizinhos = new List<Posicao>();
+        vizinhos.Add(new Posicao(linha - 1, coluna));
+        vizinhos.Add(new Posicao(linha + 1, coluna));
+        vizinhos.Add(new Posicao(linha, coluna - 1));
+        vizinhos.Add(new Posicao(linha, coluna + 1));
 
-        vizinhos.ForEach(vizinho =>
+        foreach (Posicao vizinho in vizinhos)
         {
-            bool dentro = vizinho.Item1 >= 1 && vizinho.Item1 < tamanho
-                       && vizinho.Item2 >= 1 && vizinho.Item2 < tamanho;
+            bool dentro = vizinho.Linha >= 1 && vizinho.Linha < tamanho
+                       && vizinho.Coluna >= 1 && vizinho.Coluna < tamanho;
 
-            if (dentro && !tentativas.Contains(vizinho))
+            if (dentro && !jaAtacou[vizinho.Linha, vizinho.Coluna])
             {
                 alvos.Enqueue(vizinho);
             }
-        });
+        }
     }
 }
