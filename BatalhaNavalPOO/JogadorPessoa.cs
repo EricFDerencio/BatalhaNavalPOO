@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 public class JogadorPessoa : Jogador
 {
+    private const int MAX_TENTATIVAS_POSICIONAR = 1000;
     public JogadorPessoa(string nome, Mapa mapa, List<Navio> navios)
         : base(nome, mapa, navios) { }
 
@@ -37,7 +38,36 @@ public class JogadorPessoa : Jogador
             } while (!posicionado);
         }
     }
+    public  void PosicionarNaviosAleatorio()
+    {
+        foreach (Navio navio in Navios)
+        {
+            bool posicionado = false;
+            int tentativas = 0;
 
+            do
+            {
+                if (++tentativas > MAX_TENTATIVAS_POSICIONAR)
+                {
+                    throw new InvalidOperationException($"Não foi possível posicionar o {NomeNavio(navio)}.");
+                }
+
+                try
+                {
+                    int linha = Random.Shared.Next(1, Mapa.TamanhoMapa);
+                    int coluna = Random.Shared.Next(1, Mapa.TamanhoMapa);
+                    bool horizontal = Random.Shared.Next(2) == 0;
+
+                    ColocarNavio(navio, linha, coluna, horizontal);
+                    posicionado = true;
+                }
+                catch (CoordenadaInvalidaException)
+                {
+                    // Posição ruim, sorteia outra
+                }
+            } while (!posicionado);
+        }
+    }
     public override string Atacar(Mapa mapaInimigo)
     {
         int max = mapaInimigo.TamanhoMapa - 1;
